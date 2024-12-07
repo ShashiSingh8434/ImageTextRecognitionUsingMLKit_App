@@ -3,17 +3,20 @@ package com.example.cameraappbyshashisingh;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.camera.core.Camera;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageCapture;
@@ -26,8 +29,14 @@ import androidx.core.content.ContextCompat;
 import androidx.lifecycle.LifecycleOwner;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.mlkit.vision.common.InputImage;
+import com.google.mlkit.vision.text.Text;
+import com.google.mlkit.vision.text.TextRecognition;
+import com.google.mlkit.vision.text.TextRecognizer;
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -46,14 +55,13 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "CameraApp";
     private static final int REQUEST_CAMERA_PERMISSION = 1001;
     private static final int PERMISSION_REQUEST_CODE = 100;
+    public static final String MSG = "com.example.cameraappbyshashisingh.recognizedTextValueSendingToTextInfoActivity";
     private PreviewView previewView;
     private ImageCapture imageCapture;
     private ExecutorService cameraExecutor;
     private ProcessCameraProvider cameraProvider;
     private Camera currentCamera; // Reference to the currently active camera
     private boolean CameraFacing = true; // State variable to track the current facing direction
-    // In your activity
-    ActivityResultLauncher<Intent> imagePickerLauncher;
 
 
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
@@ -65,7 +73,6 @@ public class MainActivity extends AppCompatActivity {
         previewView = findViewById(R.id.previewView);
         Button captureButton = findViewById(R.id.save);
         Button cameraFace = findViewById(R.id.cameraToggle);
-        Button gallery = findViewById(R.id.galleryGo);
 
         cameraExecutor = Executors.newSingleThreadExecutor();
 
@@ -84,11 +91,18 @@ public class MainActivity extends AppCompatActivity {
 
         captureButton.setOnClickListener(v -> capturePhoto());
         cameraFace.setOnClickListener(v -> toggleCamera());
-        gallery.setOnClickListener(v -> {
-            Intent intent = new Intent(MainActivity.this, GalleryActivity.class);
-            startActivity(intent);
-        });
     }
+
+
+//    private void updateImageButton() {
+//        ImageButton imageButton = findViewById(R.id.cameraToggle);
+//
+//        if (AppCompatDelegate.getDefaultNightMode() == AppCompatDelegate.MODE_NIGHT_YES) {
+//            imageButton.setImageResource(R.mipmap.night_mode_round);
+//        } else {
+//            imageButton.setImageResource(R.mipmap.camera_reverse_icon_foreground);
+//        }
+//    }
     private void initializeCamera() {
         ListenableFuture<ProcessCameraProvider> cameraProviderFuture =
                 androidx.camera.lifecycle.ProcessCameraProvider.getInstance(this);
@@ -135,7 +149,9 @@ public class MainActivity extends AppCompatActivity {
                 (LifecycleOwner) this, cameraSelector, preview, imageCapture);
     }
 
-
+    private String extractAlphanumeric(String text) {
+        return text.replaceAll("[^a-zA-Z0-9 ]", "");
+    }
     private void capturePhoto() {
         if (imageCapture == null) {
             Toast.makeText(this, "Camera not initialized", Toast.LENGTH_SHORT).show();
@@ -152,8 +168,11 @@ public class MainActivity extends AppCompatActivity {
         imageCapture.takePicture(outputFileOptions, cameraExecutor, new ImageCapture.OnImageSavedCallback() {
             @Override
             public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
-                runOnUiThread(() -> Toast.makeText(MainActivity.this,
-                        "Photo saved: " + photoFile.getAbsolutePath(), Toast.LENGTH_SHORT).show());
+                runOnUiThread(() -> {
+                    Toast.makeText(MainActivity.this,"Photo saved: " + photoFile.getAbsolutePath(), Toast.LENGTH_SHORT).show();
+                    recognizeText(photoFile);
+                });
+
             }
 
             @Override
@@ -161,8 +180,43 @@ public class MainActivity extends AppCompatActivity {
                 Log.e(TAG, "Photo capture failed: ", exception);
             }
         });
+
     }
 
+    private void recognizeText(File photoFile) {
+        try {
+            // Create an InputImage from the photo file
+            InputImage image = InputImage.fromFilePath(this, Uri.fromFile(photoFile));
+
+            // Initialize the TextRecognizer
+            TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
+
+            // Process the image
+            recognizer.process(image)
+                    .addOnSuccessListener(this::handleRecognizedText)
+                    .addOnFailureListener(e -> Log.e(TAG, "Text recognition failed", e));
+
+
+
+        } catch (IOException e) {
+            Toast.makeText(this, "Error reading text", Toast.LENGTH_SHORT).show();
+        }
+    }
+    private void handleRecognizedText(Text result) {
+        String recognizedText = result.getText();
+        String finalText = extractAlphanumeric(recognizedText);
+        if (!recognizedText.isEmpty()) {
+            Intent intent = new Intent(MainActivity.this, TextInfoActivity.class);
+            intent.putExtra(MSG, finalText); // Add the text
+            startActivity(intent); // Start SecondActivity
+
+//            Toast.makeText(this, "Text Recognized: " + recognizedText, Toast.LENGTH_LONG).show();
+
+        } else {
+            Toast.makeText(this, "No text detected in the image", Toast.LENGTH_SHORT).show();
+        }
+
+    }
     @Override
     protected void onDestroy() {
         super.onDestroy();

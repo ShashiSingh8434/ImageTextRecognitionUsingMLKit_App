@@ -45,4 +45,6 @@ dependencies {
     androidTestImplementation(libs.espresso.core)
     implementation(libs.glide)
     annotationProcessor(libs.glideCompiler)
+    implementation("com.google.mlkit:text-recognition:16.0.1")
+    implementation("org.jsoup:jsoup:1.16.1")
 }

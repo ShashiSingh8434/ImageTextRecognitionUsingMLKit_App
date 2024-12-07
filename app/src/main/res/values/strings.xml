@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Camera App</string>
+    <string name="app_name">Image Text Recognition App</string>
     <string name="gallery">Gallery</string>
     <string name="front_back">Front/Back</string>
     <string name="click">Click</string>
