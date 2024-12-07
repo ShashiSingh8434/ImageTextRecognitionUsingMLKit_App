@@ -151,6 +151,7 @@ public class MainActivity extends AppCompatActivity {
 
     private String extractAlphanumeric(String text) {
         return text.replaceAll("[^a-zA-Z0-9 ]", "");
+
     }
     private void capturePhoto() {
         if (imageCapture == null) {

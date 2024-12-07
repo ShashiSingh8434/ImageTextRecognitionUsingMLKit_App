@@ -1,9 +1,12 @@
 package com.example.cameraappbyshashisingh;
 
-import static android.content.Intent.getIntent;
 import static com.example.cameraappbyshashisingh.MainActivity.MSG;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
@@ -11,10 +14,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
-
-import com.google.mlkit.vision.text.TextRecognition;
-import com.google.mlkit.vision.text.TextRecognizer;
-import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -29,6 +28,8 @@ public class TextInfoActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_text_info);
+
+        Button searchGoogle = findViewById(R.id.search);
 
 
         // Get the text passed from the first Activity
@@ -64,8 +65,6 @@ public class TextInfoActivity extends AppCompatActivity {
                     }
                 }
 
-
-                // Update the TextView on the main thread
                 runOnUiThread(() -> textView.setText(results.toString()));
 
             } catch (IOException e) {
@@ -74,6 +73,17 @@ public class TextInfoActivity extends AppCompatActivity {
         }).start();
 
 
+        searchGoogle.setOnClickListener(v -> {
+            String query = finalReceivedText;
+            if (!query.isEmpty()) {
+                // Create an intent to open Google with the search query
+                String searchUrl = "https://www.google.com/search?q=" + Uri.encode(query);
+                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(searchUrl));
+
+                // Open the search URL in the default web browser
+                startActivity(intent);
+            }
+        });
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
