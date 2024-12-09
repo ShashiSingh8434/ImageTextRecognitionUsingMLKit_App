@@ -17,6 +17,9 @@ public class MedicalinfoActivity extends AppCompatActivity {
 /*
 *         This is just specifically made for just Lab blood test report
 *
+*         But currently it is not completed
+*
+*
 * */
     @Override
     protected void onCreate(Bundle savedInstanceState) {

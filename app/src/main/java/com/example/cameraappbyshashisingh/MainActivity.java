@@ -77,7 +77,7 @@ public class MainActivity extends AppCompatActivity {
 
 
         Button buttonPickImage = findViewById(R.id.infoSend);
-        CheckBox checkBox = findViewById(R.id.checkBox);
+//        CheckBox checkBox = findViewById(R.id.checkBox);
 
         galleryLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
@@ -110,14 +110,14 @@ public class MainActivity extends AppCompatActivity {
         captureButton.setOnClickListener(v -> capturePhoto());
         cameraFace.setOnClickListener(v -> toggleCamera());
         buttonPickImage.setOnClickListener(v -> openGallery());
-        checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            MainActivity.this.isChecked = isChecked;
-            if (isChecked) {
-                toMedicalInfo = true;
-            }else {
-                toMedicalInfo = false;
-            }
-        });
+//        checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+//            MainActivity.this.isChecked = isChecked;
+//            if (isChecked) {
+//                toMedicalInfo = true;
+//            }else {
+//                toMedicalInfo = false;
+//            }
+//        });
     }
     private void openGallery() {
         Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
