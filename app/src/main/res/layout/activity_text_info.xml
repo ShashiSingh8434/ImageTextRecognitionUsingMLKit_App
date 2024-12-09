@@ -31,9 +31,13 @@
     <EditText
         android:id="@+id/editableText"
         android:layout_width="match_parent"
-        android:layout_height="396dp"
+        android:layout_height="200dp"
         android:ems="10"
-        android:inputType="text"
+        android:gravity="start|top"
+        android:inputType="textMultiLine"
+        android:lines="5"
+        android:scrollHorizontally="false"
+        android:singleLine="false"
         android:text="@string/getting_text_from_image"
         app:layout_constraintBottom_toTopOf="@+id/textProcess"
         app:layout_constraintEnd_toEndOf="parent"
@@ -41,4 +45,18 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.689" />
+
+    <TextView
+        android:id="@+id/textInfoTextView"
+        android:layout_width="match_parent"
+        android:layout_height="400dp"
+        android:text="TextView"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.141" />
+
+
 </androidx.constraintlayout.widget.ConstraintLayout>

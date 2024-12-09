@@ -35,46 +35,49 @@ public class TextInfoActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_text_info);
 
-        EditText reportDetails = findViewById(R.id.editableText);
+//        EditText reportDetails = findViewById(R.id.editableText);
         Button searchGoogle = findViewById(R.id.search);
         Button textProcess = findViewById(R.id.textProcess);
+        TextView reportDetails = findViewById(R.id.textInfoTextView);
 
 
         // Get the text passed from the first Activity
         String receivedText = getIntent().getStringExtra(MSG);
         reportDetails.setText(receivedText);
-        String finalReceivedText = reportDetails.getText().toString();
+//        String finalReceivedText = reportDetails.getText().toString();
 
+        textProcess.setOnClickListener(v -> {
+            new Thread(() -> {
+                StringBuilder results = new StringBuilder();
+                try {
+                    // URL to scrape (example: Google search query)
+                    String url = "https://www.google.com/search?q=" + getNewText(reportDetails).replace(" ", "+");
 
-        new Thread(() -> {
-            StringBuilder results = new StringBuilder();
-            try {
-                // URL to scrape (example: Google search query)
-                String url = "https://www.google.com/search?q=" + getNewText(reportDetails).replace(" ", "+");
+                    // Fetch the HTML document
+                    Document doc = Jsoup.connect(url)
+                            .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+                            .get();
 
-                // Fetch the HTML document
-                Document doc = Jsoup.connect(url)
-                        .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
-                        .get();
-
-                // Extract data using CSS selectors
-                Elements searchResults = doc.select("span.hgKElc"); // Titles of search results
-                for (int i = 0; i < searchResults.size(); i++) {
-                    results.append(searchResults.get(i).text()).append("\n");
-                    // Add a delay between requests to avoid being flagged as a bot
-                    try {
-                        Thread.sleep(2000); // Sleep for 1 second (1000 milliseconds)
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
+                    // Extract data using CSS selectors
+                    Elements searchResults = doc.select("span.hgKElc"); // Titles of search results
+                    for (int i = 0; i < searchResults.size(); i++) {
+                        results.append(searchResults.get(i).text()).append("\n");
+                        // Add a delay between requests to avoid being flagged as a bot
+                        try {
+                            Thread.sleep(2000); // Sleep for 1 second (1000 milliseconds)
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
                     }
+
+                    runOnUiThread(() -> reportDetails.setText(results.toString()));
+
+                } catch (IOException e) {
+                    runOnUiThread(() -> reportDetails.setText("Error: " + e.getMessage()));
                 }
+            }).start();
+        });
 
-                runOnUiThread(() -> reportDetails.setText(results.toString()));
-
-            } catch (IOException e) {
-                runOnUiThread(() -> reportDetails.setText("Error: " + e.getMessage()));
-            }
-        }).start();
 
 
         searchGoogle.setOnClickListener(v -> {
@@ -95,7 +98,7 @@ public class TextInfoActivity extends AppCompatActivity {
             return insets;
         });
     }
-    private String getNewText(EditText editText){
+    private String getNewText(TextView editText){
         return editText.getText().toString();
     }
 }

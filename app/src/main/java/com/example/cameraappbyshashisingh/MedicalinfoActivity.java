@@ -1,8 +1,8 @@
 package com.example.cameraappbyshashisingh;
 
 import android.os.Bundle;
-import android.widget.Button;
-import android.widget.EditText;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -24,23 +24,23 @@ public class MedicalinfoActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_medicalinfo);
 
-        EditText reportDetails = findViewById(R.id.infotext);
-        Button process = findViewById(R.id.process);
+        TextView reportDetails = findViewById(R.id.infoMedical);
 
         String recognizedText = getIntent().getStringExtra(MainActivity.MSG);
-        reportDetails.setText(recognizedText);
+        if (recognizedText == null || recognizedText.isEmpty()) {
+            recognizedText = "No data provided";
+        }
+        String alignedText = alignLabelsAndValues(recognizedText);
+        String analysisResult = analyzeHealthData(alignedText);
+        reportDetails.setText(analysisResult);
+
 
 //        recognizedText = reportDetails.getText().toString();
+        String finalRecognizedText = reportDetails.getText().toString();
 
-        process.setOnClickListener(v -> {
-            String finalRecognizedText = reportDetails.getText().toString();
-
-            // Analyze the text and display results
-            String analysisResult = analyzeHealthData(finalRecognizedText);
-            reportDetails.setText(analysisResult);
-        });
-
-
+        // Analyze the text and display results
+        String analysisResultAfter = analyzeHealthData(finalRecognizedText);
+        reportDetails.setText(analysisResultAfter);
 
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
@@ -56,41 +56,49 @@ public class MedicalinfoActivity extends AppCompatActivity {
     private String analyzeHealthData(String text) {
         StringBuilder result = new StringBuilder();
 
-        // Parse Hemoglobin
-        String hbLevelStr = extractValue(text, "hemoglobin|hb");
-        if (!hbLevelStr.equals("Not Found")) {
-            float hbLevel = Float.parseFloat(hbLevelStr);
-            result.append("Hemoglobin: ").append(hbLevel).append("\n");
-            result.append(getHemoglobinStatus(hbLevel)).append("\n");
-        }
+        try {
+            // Parse Hemoglobin
+            String hbLevelStr = extractValue(text, "hemoglobin|hb");
+            if (!hbLevelStr.equals("Not Found")) {
 
-        // Parse RBC
-        String rbcLevelStr = extractValue(text, "rbc|red blood cell");
-        if (!rbcLevelStr.equals("Not Found")) {
-            float rbcLevel = Float.parseFloat(rbcLevelStr);
-            result.append("RBC Count: ").append(rbcLevel).append("\n");
-            result.append(getRbcStatus(rbcLevel)).append("\n");
-        }
+                float hbLevel = Float.parseFloat(hbLevelStr);
+                result.append("Hemoglobin: ").append(hbLevel).append("\n");
+                result.append(getHemoglobinStatus(hbLevel)).append("\n");
 
-        // Parse Cholesterol
-        String cholesterolStr = extractValue(text, "cholesterol");
-        if (!cholesterolStr.equals("Not Found")) {
-            float cholesterol = Float.parseFloat(cholesterolStr);
-            result.append("Cholesterol: ").append(cholesterol).append("\n");
-            result.append(getCholesterolStatus(cholesterol)).append("\n");
-        }
 
-        // Parse Blood Sugar
-        String bloodSugarStr = extractValue(text, "blood sugar");
-        if (!bloodSugarStr.equals("Not Found")) {
-            float bloodSugar = Float.parseFloat(bloodSugarStr);
-            result.append("Blood Sugar: ").append(bloodSugar).append("\n");
-            result.append(getBloodSugarStatus(bloodSugar)).append("\n");
+            }
+
+            // Parse RBC
+            String rbcLevelStr = extractValue(text, "rbc|red blood cell");
+            if (!rbcLevelStr.equals("Not Found")) {
+                float rbcLevel = Float.parseFloat(rbcLevelStr);
+                result.append("RBC Count: ").append(rbcLevel).append("\n");
+                result.append(getRbcStatus(rbcLevel)).append("\n");
+            }
+
+            // Parse Cholesterol
+            String cholesterolStr = extractValue(text, "cholesterol");
+            if (!cholesterolStr.equals("Not Found")) {
+                float cholesterol = Float.parseFloat(cholesterolStr);
+                result.append("Cholesterol: ").append(cholesterol).append("\n");
+                result.append(getCholesterolStatus(cholesterol)).append("\n");
+            }
+
+            // Parse Blood Sugar
+            String bloodSugarStr = extractValue(text, "blood sugar");
+            if (!bloodSugarStr.equals("Not Found")) {
+                float bloodSugar = Float.parseFloat(bloodSugarStr);
+                result.append("Blood Sugar: ").append(bloodSugar).append("\n");
+                result.append(getBloodSugarStatus(bloodSugar)).append("\n");
+            }
+        }catch (Exception e) {
+            Toast.makeText(this, "Fuck it...", Toast.LENGTH_SHORT).show();
         }
 
         if (result.length() == 0) {
-            return "No health-related information found.";
+            return "No health-related information found or data format is invalid.";
         }
+
 
         return result.toString();
     }
@@ -147,13 +155,47 @@ public class MedicalinfoActivity extends AppCompatActivity {
      * Extract numerical values using regex pattern.
      */
     private String extractValue(String text, String patternString) {
-        Pattern pattern = Pattern.compile(patternString + "\\s*[:\\s]*([0-9]+\\.?[0-9]*)", Pattern.CASE_INSENSITIVE);
+        Pattern pattern = Pattern.compile(
+                patternString + "\\s*[:=\\s]*([0-9]+(?:\\.[0-9]+)?)(\\s*(Low|Normal|High))?",
+                Pattern.CASE_INSENSITIVE
+        );
         Matcher matcher = pattern.matcher(text);
 
         if (matcher.find()) {
-            return matcher.group(1);
+            try {
+                String value = matcher.group(1); // Extract numeric value
+                String status = matcher.group(3); // Extract status (Low, Normal, High) if available
+                return value + (status != null ? " (" + status + ")" : "");
+            } catch (Exception e) {
+                return "Not Found";
+            }
         }
 
         return "Not Found";
     }
+
+    private String alignLabelsAndValues(String text) {
+        String[] lines = text.split("\n");
+        StringBuilder alignedText = new StringBuilder();
+
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i].trim();
+
+            // Check if the line contains a label (common medical terms)
+            if (line.matches(".*(hemoglobin|hb|rbc|wbc|platelet|pcv|mcv|mch|mchc|neutrophils|lymphocytes|eosinophils|monocytes|basophils).*")
+                    && i + 1 < lines.length) {
+                // Append the next line if it contains the value or additional data
+                if (lines[i + 1].matches(".*\\d+.*")) {
+                    line += " " + lines[i + 1].trim();
+                    i++; // Skip the next line since it has been appended
+                }
+            }
+
+            alignedText.append(line).append("\n");
+        }
+
+        return alignedText.toString();
+    }
+
+
 }

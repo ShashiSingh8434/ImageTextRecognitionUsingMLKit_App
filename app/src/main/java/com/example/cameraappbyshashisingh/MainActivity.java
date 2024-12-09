@@ -240,29 +240,38 @@ public class MainActivity extends AppCompatActivity {
         }
     }
     private void handleRecognizedText(Text result) {
-        String recognizedText = result.getText();
-        String finalText = extractAlphanumeric(recognizedText);
-        if (!recognizedText.isEmpty()) {
+        StringBuilder reconstructedText = new StringBuilder();
 
-            if(toMedicalInfo){
-                Intent intent = new Intent(MainActivity.this, MedicalinfoActivity.class);
-                intent.putExtra(MSG, finalText); // Add the text
-                startActivity(intent); // Start SecondActivity
-            }else {
-                Intent intent = new Intent(MainActivity.this, TextInfoActivity.class);
-                intent.putExtra(MSG, finalText); // Add the text
-                startActivity(intent);
+        // Process each block and line of text
+        for (Text.TextBlock block : result.getTextBlocks()) {
+            for (Text.Line line : block.getLines()) {
+                // Append each line with a newline character
+                reconstructedText.append(line.getText().trim()).append("  \n");
             }
+        }
 
-            Toast.makeText(this, "handledRecognizedText", Toast.LENGTH_SHORT).show();
+        // Convert the reconstructed text to a string
+        String finalText = reconstructedText.toString();
 
-//            Toast.makeText(this, "Text Recognized: " + recognizedText, Toast.LENGTH_LONG).show();
+        // Extract only alphanumeric characters (if required)
+        finalText = extractAlphanumeric(finalText);
 
+        if (!finalText.isEmpty()) {
+            Intent intent;
+            if (toMedicalInfo) {
+                intent = new Intent(MainActivity.this, MedicalinfoActivity.class);
+            } else {
+                intent = new Intent(MainActivity.this, TextInfoActivity.class);
+            }
+            intent.putExtra(MSG, finalText); // Add the text
+            startActivity(intent);
+
+            Toast.makeText(this, "Text processed and passed to the next activity", Toast.LENGTH_SHORT).show();
         } else {
             Toast.makeText(this, "No text detected in the image", Toast.LENGTH_SHORT).show();
         }
-
     }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
