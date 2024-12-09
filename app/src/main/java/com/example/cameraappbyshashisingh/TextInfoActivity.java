@@ -10,6 +10,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -35,13 +36,12 @@ public class TextInfoActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_text_info);
 
-//        EditText reportDetails = findViewById(R.id.editableText);
+        EditText reportDetails = findViewById(R.id.editableText);
         Button searchGoogle = findViewById(R.id.search);
         Button textProcess = findViewById(R.id.textProcess);
-        TextView reportDetails = findViewById(R.id.textInfoTextView);
+        TextView textResult = findViewById(R.id.textInfoTextView);
 
 
-        // Get the text passed from the first Activity
         String receivedText = getIntent().getStringExtra(MSG);
         reportDetails.setText(receivedText);
 //        String finalReceivedText = reportDetails.getText().toString();
@@ -51,12 +51,13 @@ public class TextInfoActivity extends AppCompatActivity {
                 StringBuilder results = new StringBuilder();
                 try {
                     // URL to scrape (example: Google search query)
-                    String url = "https://www.google.com/search?q=" + getNewText(reportDetails).replace(" ", "+");
+                    String url = "https://www.google.com/search?q=" + "paracetamol".replace(" ", "+");
 
-                    // Fetch the HTML document
                     Document doc = Jsoup.connect(url)
-                            .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+                            .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36")
+                            .timeout(5000)
                             .get();
+
 
                     // Extract data using CSS selectors
                     Elements searchResults = doc.select("span.hgKElc"); // Titles of search results
@@ -70,10 +71,11 @@ public class TextInfoActivity extends AppCompatActivity {
                         }
                     }
 
-                    runOnUiThread(() -> reportDetails.setText(results.toString()));
+                    runOnUiThread(() -> textResult.setText(results.toString()));
 
                 } catch (IOException e) {
-                    runOnUiThread(() -> reportDetails.setText("Error: " + e.getMessage()));
+                    runOnUiThread(() -> textResult.setText("Please google search it api must have exceeded it's rate limit "));
+                    Toast.makeText(this, "", Toast.LENGTH_SHORT).show();
                 }
             }).start();
         });
@@ -98,7 +100,7 @@ public class TextInfoActivity extends AppCompatActivity {
             return insets;
         });
     }
-    private String getNewText(TextView editText){
+    private String getNewText(EditText editText){
         return editText.getText().toString();
     }
 }
