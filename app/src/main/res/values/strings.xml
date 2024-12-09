@@ -7,4 +7,5 @@
     <string name="gallery_image">Gallery Image</string>
     <string name="process">Process</string>
     <string name="getting_text_from_image">Getting text from image</string>
+    <string name="blood_test_report">Blood Test Report</string>
 </resources>

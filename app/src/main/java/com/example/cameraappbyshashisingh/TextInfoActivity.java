@@ -22,7 +22,11 @@ import org.jsoup.select.Elements;
 import java.io.IOException;
 
 public class TextInfoActivity extends AppCompatActivity {
-
+/*
+*    This is for normal searches like as if someone needs to search about some basic things using camera like as if on medical prescription
+*    it is just for future reference and was one of the direction in which our project could have gone ....
+*
+* */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

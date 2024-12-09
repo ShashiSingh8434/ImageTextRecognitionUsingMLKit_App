@@ -14,7 +14,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class MedicalinfoActivity extends AppCompatActivity {
-
+/*
+*         This is just specifically made for just Lab blood test report
+*
+* */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
