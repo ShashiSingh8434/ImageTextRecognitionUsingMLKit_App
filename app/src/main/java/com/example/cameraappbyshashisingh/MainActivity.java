@@ -1,22 +1,24 @@
 package com.example.cameraappbyshashisingh;
 
 import android.Manifest;
+import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.widget.Button;
-import android.widget.ImageButton;
+import android.widget.CheckBox;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.app.AppCompatDelegate;
 import androidx.camera.core.Camera;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageCapture;
@@ -36,22 +38,18 @@ import com.google.mlkit.vision.text.TextRecognizer;
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity {
-    /*
-    *
-    *
-    *
-    *
-    * now i have to just make gallery here image is clicked and saved in app data so have me make it avaible in galleryActivity
-    *
-    *
-    *
-    * */
+    private static final int PICK_IMAGE_REQUEST = 1;
+    private Uri imageUri;
+    private ActivityResultLauncher<Intent> galleryLauncher;
+
     private static final String TAG = "CameraApp";
     private static final int REQUEST_CAMERA_PERMISSION = 1001;
     private static final int PERMISSION_REQUEST_CODE = 100;
@@ -60,8 +58,11 @@ public class MainActivity extends AppCompatActivity {
     private ImageCapture imageCapture;
     private ExecutorService cameraExecutor;
     private ProcessCameraProvider cameraProvider;
-    private Camera currentCamera; // Reference to the currently active camera
-    private boolean CameraFacing = true; // State variable to track the current facing direction
+    private Camera currentCamera;
+    private boolean CameraFacing = true;
+
+    private boolean toMedicalInfo = false;
+    private boolean isChecked = false;
 
 
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
@@ -74,6 +75,23 @@ public class MainActivity extends AppCompatActivity {
         Button captureButton = findViewById(R.id.save);
         Button cameraFace = findViewById(R.id.cameraToggle);
 
+
+        Button buttonPickImage = findViewById(R.id.infoSend);
+        CheckBox checkBox = findViewById(R.id.checkBox);
+
+        galleryLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+                        imageUri = result.getData().getData();
+                        if (imageUri != null) {
+                            File file = getFileFromUri(imageUri);
+                            if (file != null) {
+                                processImage(file);
+                            }
+                        }
+                    }
+                });
         cameraExecutor = Executors.newSingleThreadExecutor();
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
@@ -91,18 +109,42 @@ public class MainActivity extends AppCompatActivity {
 
         captureButton.setOnClickListener(v -> capturePhoto());
         cameraFace.setOnClickListener(v -> toggleCamera());
+        buttonPickImage.setOnClickListener(v -> openGallery());
+        checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            MainActivity.this.isChecked = isChecked;
+            if (isChecked) {
+                toMedicalInfo = true;
+            }else {
+                toMedicalInfo = false;
+            }
+        });
     }
-
-
-//    private void updateImageButton() {
-//        ImageButton imageButton = findViewById(R.id.cameraToggle);
-//
-//        if (AppCompatDelegate.getDefaultNightMode() == AppCompatDelegate.MODE_NIGHT_YES) {
-//            imageButton.setImageResource(R.mipmap.night_mode_round);
-//        } else {
-//            imageButton.setImageResource(R.mipmap.camera_reverse_icon_foreground);
-//        }
-//    }
+    private void openGallery() {
+        Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        galleryLauncher.launch(intent);
+    }
+    private File getFileFromUri(Uri uri) {
+        try {
+            InputStream inputStream = getContentResolver().openInputStream(uri);
+            File file = new File(getCacheDir(), "selected_image");
+            FileOutputStream fos = new FileOutputStream(file);
+            byte[] buffer = new byte[1024];
+            int bytesRead;
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                fos.write(buffer, 0, bytesRead);
+            }
+            fos.close();
+            inputStream.close();
+            return file;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+    private void processImage(File file) {
+        recognizeText(file);
+        Toast.makeText(this, "Image file: " + file.getAbsolutePath(), Toast.LENGTH_SHORT).show();
+    }
     private void initializeCamera() {
         ListenableFuture<ProcessCameraProvider> cameraProviderFuture =
                 androidx.camera.lifecycle.ProcessCameraProvider.getInstance(this);
@@ -110,7 +152,7 @@ public class MainActivity extends AppCompatActivity {
         cameraProviderFuture.addListener(() -> {
             try {
                 cameraProvider = cameraProviderFuture.get();
-                bindPreview(); // Start the initial camera state
+                bindPreview();
             } catch (ExecutionException | InterruptedException e) {
                 Log.e(TAG, "Error setting up camera provider", e);
             }
@@ -119,13 +161,10 @@ public class MainActivity extends AppCompatActivity {
 
     private void toggleCamera() {
         if (cameraProvider != null) {
-            cameraProvider.unbindAll(); // Stop all current camera activities
+            cameraProvider.unbindAll();
         }
 
-        // Change the camera facing direction state
         CameraFacing = !CameraFacing;
-
-        // Now bind the camera with the new direction
         bindPreview();
     }
 
@@ -135,7 +174,6 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        // Set up the preview and capture options
         Preview preview = new Preview.Builder().build();
         imageCapture = new ImageCapture.Builder().build();
 
@@ -186,10 +224,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void recognizeText(File photoFile) {
         try {
-            // Create an InputImage from the photo file
             InputImage image = InputImage.fromFilePath(this, Uri.fromFile(photoFile));
 
-            // Initialize the TextRecognizer
             TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
 
             // Process the image
@@ -207,9 +243,18 @@ public class MainActivity extends AppCompatActivity {
         String recognizedText = result.getText();
         String finalText = extractAlphanumeric(recognizedText);
         if (!recognizedText.isEmpty()) {
-            Intent intent = new Intent(MainActivity.this, TextInfoActivity.class);
-            intent.putExtra(MSG, finalText); // Add the text
-            startActivity(intent); // Start SecondActivity
+
+            if(toMedicalInfo){
+                Intent intent = new Intent(MainActivity.this, MedicalinfoActivity.class);
+                intent.putExtra(MSG, finalText); // Add the text
+                startActivity(intent); // Start SecondActivity
+            }else {
+                Intent intent = new Intent(MainActivity.this, TextInfoActivity.class);
+                intent.putExtra(MSG, finalText); // Add the text
+                startActivity(intent);
+            }
+
+            Toast.makeText(this, "handledRecognizedText", Toast.LENGTH_SHORT).show();
 
 //            Toast.makeText(this, "Text Recognized: " + recognizedText, Toast.LENGTH_LONG).show();
 

@@ -47,4 +47,6 @@ dependencies {
     annotationProcessor(libs.glideCompiler)
     implementation("com.google.mlkit:text-recognition:16.0.1")
     implementation("org.jsoup:jsoup:1.16.1")
+    implementation("androidx.activity:activity:1.2.0")
+    implementation("androidx.core:core-ktx:1.8.0")
 }
