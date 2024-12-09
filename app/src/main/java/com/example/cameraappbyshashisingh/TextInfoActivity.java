@@ -2,11 +2,13 @@ package com.example.cameraappbyshashisingh;
 
 import static com.example.cameraappbyshashisingh.MainActivity.MSG;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
@@ -33,24 +35,22 @@ public class TextInfoActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_text_info);
 
+        EditText reportDetails = findViewById(R.id.editableText);
         Button searchGoogle = findViewById(R.id.search);
+        Button textProcess = findViewById(R.id.textProcess);
 
 
         // Get the text passed from the first Activity
         String receivedText = getIntent().getStringExtra(MSG);
+        reportDetails.setText(receivedText);
+        String finalReceivedText = reportDetails.getText().toString();
 
-        // Example: Set the received text to a TextView
-        TextView textView = findViewById(R.id.textView);
-        textView.setText(receivedText);
-        receivedText = receivedText +" common uses ";
 
-        // Start scraping in a background thread
-        String finalReceivedText = receivedText;
         new Thread(() -> {
             StringBuilder results = new StringBuilder();
             try {
                 // URL to scrape (example: Google search query)
-                String url = "https://www.google.com/search?q=" + finalReceivedText.replace(" ", "+");
+                String url = "https://www.google.com/search?q=" + getNewText(reportDetails).replace(" ", "+");
 
                 // Fetch the HTML document
                 Document doc = Jsoup.connect(url)
@@ -69,16 +69,16 @@ public class TextInfoActivity extends AppCompatActivity {
                     }
                 }
 
-                runOnUiThread(() -> textView.setText(results.toString()));
+                runOnUiThread(() -> reportDetails.setText(results.toString()));
 
             } catch (IOException e) {
-                runOnUiThread(() -> textView.setText("Error: " + e.getMessage()));
+                runOnUiThread(() -> reportDetails.setText("Error: " + e.getMessage()));
             }
         }).start();
 
 
         searchGoogle.setOnClickListener(v -> {
-            String query = finalReceivedText;
+            String query = getNewText(reportDetails);
             if (!query.isEmpty()) {
                 // Create an intent to open Google with the search query
                 String searchUrl = "https://www.google.com/search?q=" + Uri.encode(query);
@@ -94,5 +94,8 @@ public class TextInfoActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+    }
+    private String getNewText(EditText editText){
+        return editText.getText().toString();
     }
 }
